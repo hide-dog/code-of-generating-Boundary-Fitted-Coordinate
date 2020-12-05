@@ -1,0 +1,22 @@
+# ----------------------------------
+# -- Reference
+# The source of the grid data is listed.
+# ----------------------------------
+
+# NACA0012
+NACA 0012 AIRFOILS (n0012-il)
+http://airfoiltools.com/airfoil/details?airfoil=n0012-il
+
+# NACA4412
+NACA 4412 (naca4412-il)
+http://airfoiltools.com/airfoil/details?airfoil=naca4412-il
+
+# NACA64A010
+NACA 64A-010 10.0% (naca64a010-il)
+http://airfoiltools.com/airfoil/details?airfoil=naca64a010-il
+
+# hayabusa capsule
+Planetary Mission Entry Vehicles Quick Reference Guide. Version 3.0
+Davies, Carol (Eloret Corp. Moffett Field, CA, United States), Arcadi, Marla
+January 1, 2006
+https://ntrs.nasa.gov/citations/20070022789
