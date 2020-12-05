@@ -1,6 +1,6 @@
 # code-of-generating-Boundary-Fitted-Coordinate  
 agg.jl  
-格子数読み込むデータセットを変更し、実行することで、境界適合格子を生成できる  
+格子数や読み込むデータセットを変更し、実行することで、境界適合格子を生成できます  
 
 plot.py  
 格子確認用  
