@@ -13,21 +13,21 @@ function main()
     nr    = 200
     nwing = 200
     
-    
+    #=
     fout     = "xy_NACA0012"         # output file name
     NACAname = "NACA0012"            # NACA0012 type
     r    = 2.5                       # O型格子の半径
     cx   = 0.5                       # 翼データはx=0~1のため、その間の0.5をO型の中心とする。
     dnum = 4                         # NACA0012 type = 4, NACA64A010 type = 6 
+    =#
     
     
-    #=
     fout     = "xy_hayabusa"         # output file name
     NACAname = "hayabusa_shape"      # NACA0012 type
-    r    = 0.9                       # O型格子の半径
+    r    = 3.0                       # O型格子の半径
     cx   = -0.101                    # O型格子の中心
     dnum = 4                         # NACA0012 type = 4, NACA64A010 type = 6 
-    =#
+    
     
     #=
     fout     = "xy_NACA64A010"       # output file name
@@ -166,9 +166,9 @@ end
 function algebraic_grid_gene(nx,ny,x1,x2,x3,x4,y1,y2,y3,y4)
     x = zeros(nx,ny)
     y = zeros(nx,ny)
-    
-    for j in 2:nx-1
-        for i in 2:ny-1
+
+    for j in 2:ny-1
+        for i in 2:nx-1
             xi  = (i-1)/(ny-1)
             eta = (j-1)/(nx-1)
             x[i,j] = (1-eta)*x1[i] + eta*x3[i] + (1-xi)*x2[j] + xi*x4[j] - 
