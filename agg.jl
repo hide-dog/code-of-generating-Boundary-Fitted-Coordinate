@@ -10,7 +10,7 @@ println("\n")
 
 function main()
     # 座標点数 ( 格子数 = nr-1 )
-    nr    = 200
+    nr    = 400
     nwing = 200
     
     #=
@@ -74,11 +74,11 @@ function main()
     x,y = algebraic_grid_gene(nr,nwing,x1,x2,x3,x4,y1,y2,y3,y4)
     
     open(fout,"w") do f
-        a1 = @sprintf("%8.8e", nr)
-        a2 = @sprintf("%8.8e", nwing)
+        a1 = @sprintf("%8.8e", nwing)
+        a2 = @sprintf("%8.8e", nr)
         write(f, a1*" "*a2*"\n")
-        for i in 1:nr
-            for j in 1:nwing
+        for j in 1:nr
+            for i in 1:nwing
                 ai = string(i)
                 aj = string(j)
                 a1 = @sprintf("%8.8e", x[i,j])
@@ -163,33 +163,33 @@ end
 # -- algebraic_grid_gene(nx,ny,x1,x2,x3,x4,y1,y2,y3,y4)
 # -- 幾何学的計算により、境界適合格子を作成
 # ----------------------------------------------
-function algebraic_grid_gene(nx,ny,x1,x2,x3,x4,y1,y2,y3,y4)
-    x = zeros(nx,ny)
-    y = zeros(nx,ny)
+function algebraic_grid_gene(nr,nwing,x1,x2,x3,x4,y1,y2,y3,y4)
+    x = zeros(nwing,nr)
+    y = zeros(nwing,nr)
 
-    for j in 2:ny-1
-        for i in 2:nx-1
-            xi  = (i-1)/(ny-1)
-            eta = (j-1)/(nx-1)
-            x[i,j] = (1-eta)*x1[i] + eta*x3[i] + (1-xi)*x2[j] + xi*x4[j] - 
-                    (xi*eta*x3[nx] + xi*(1-eta)*x1[nx] + eta*(1-xi)*x3[1] + (1-xi)*(1-eta)*x1[1])
-            y[i,j] = (1-eta)*y1[i] + eta*y3[i] + (1-xi)*y2[j] + xi*y4[j] - 
-                    (xi*eta*y3[ny] + xi*(1-eta)*y1[ny] + eta*(1-xi)*y3[1] + (1-xi)*(1-eta)*y1[1])
+    for j in 2:nwing-1
+        for i in 2:nr-1
+            xi = (i-1)/(nr-1)
+            eta  = (j-1)/(nwing-1)
+            x[j,i] = (1-eta)*x1[i] + eta*x3[i] + (1-xi)*x2[j] + xi*x4[j] - 
+                    (xi*eta*x3[nr] + xi*(1-eta)*x1[nr] + eta*(1-xi)*x3[1] + (1-xi)*(1-eta)*x1[1])
+            y[j,i] = (1-eta)*y1[i] + eta*y3[i] + (1-xi)*y2[j] + xi*y4[j] - 
+                    (xi*eta*y3[nr] + xi*(1-eta)*y1[nr] + eta*(1-xi)*y3[1] + (1-xi)*(1-eta)*y1[1])
         end
     end
     
     # Substitution of bd
-    for i in 1:nx
-        x[i,1]  = x1[i]
-        y[i,1]  = y1[i]
-        x[i,ny] = x3[i]
-        y[i,ny] = y3[i]
+    for i in 1:nwing
+        x[i,1]  = x2[i]
+        y[i,1]  = y2[i]
+        x[i,nr] = x4[i]
+        y[i,nr] = y4[i]
     end
-    for j in 1:ny
-        x[1,j]  = x2[j]
-        y[1,j]  = y2[j]
-        x[nx,j] = x4[j]
-        y[nx,j] = y4[j]
+    for j in 1:nr
+        x[1,j]  = x1[j]
+        y[1,j]  = y1[j]
+        x[nwing,j] = x3[j]
+        y[nwing,j] = y3[j]
     end
 
     return x,y
