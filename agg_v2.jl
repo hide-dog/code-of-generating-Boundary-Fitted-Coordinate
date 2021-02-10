@@ -10,23 +10,35 @@ println("\n")
 
 function main()
     # 座標点数 ( 格子数 = nr-1 )
-    nr    = 400
-    nwing = 400
+    nr    = 200
+    nwing = 200
     
-    #=
+    
     fout     = "xy_NACA0012"         # output file name
     NACAname = "NACA0012"            # NACA0012 type
     r    = 2.5                       # O型格子の半径
     cx   = 0.5                       # 翼データはx=0~1のため、その間の0.5をO型の中心とする。
+    min_dy = 1.0e-3                  # 半径方向の最小格子幅, m
     dnum = 4                         # NACA0012 type = 4, NACA64A010 type = 6 
-    =#
     
     
+    #=
     fout     = "xy_hayabusa"         # output file name
     NACAname = "hayabusa_shape"      # NACA0012 type
-    r    = 5.0                       # O型格子の半径
-    cx   = -0.101                    # O型格子の中心
-    dnum = 4                         # NACA0012 type = 4, NACA64A010 type = 6 
+    r      = 5.0                     # O型格子の半径
+    cx     = -0.101                  # O型格子の中心
+    min_dy = 1.0e-2                  # 半径方向の最小格子幅, m
+    dnum   = 4                       # NACA0012 type = 4, NACA64A010 type = 6 
+    =#
+
+    #=
+    fout     = "xy_box"         # output file name
+    NACAname = "box"      # NACA0012 type
+    r      = 5.0                     # O型格子の半径
+    cx     = 0.5                  # O型格子の中心
+    min_dy = 1.0e-2                  # 半径方向の最小格子幅, m
+    dnum   = 4                       # NACA0012 type = 4, NACA64A010 type = 6 
+    =#
     
     
     #=
@@ -66,10 +78,13 @@ function main()
         throw(UndefVarError(:x))
     end
     
-    x1, y1 = cal_area1(edgex, edgey, r, cx, nr)
+    x1, y1 = cal_area1(edgex, edgey, r, cx, nr, min_dy)
     x2, y2 = cal_area2(surface_len, aroundx, aroundy,nwing)
-    x3, y3 = cal_area1(edgex, edgey, r, cx, nr)
+    x3, y3 = cal_area3(edgex, edgey, r, cx, nr, min_dy, x2[Int(nwing*0.5)])
     x4, y4 = cal_area4(edgex, edgey, r, cx, nwing)
+
+    nr = nr
+    nwing = Int(nwing*0.5)
     
     x,y = algebraic_grid_gene(nr,nwing,x1,x2,x3,x4,y1,y2,y3,y4)
     
@@ -97,18 +112,109 @@ function main()
     end
 end
 
-function cal_area1(edgex, edgey, r, cx, nr)
+function cal_area1(edgex, edgey, r, cx, nr, min_dy)
     x1 = zeros(nr)
     y1 = zeros(nr)
     
-    dx  = (r - edgex + cx) / (nr-1)
-    
-    for i in 1:nr
-        x1[i] = edgex + (i-1)*dx
+    l  = r - edgex + cx
+
+    if l/(nr-1) < min_dy
+        println("------------------------\n")
+        println(" error \n ")
+        println(" please change min dy \n ")
+        println(" dy = ")
+        println(l/(nr-1))
+        println(" \n ")
+        println(" min dy = ")
+        println(min_dy)
+        println("------------------------")
+    end
+
+    alpha = newton_method(nr-2,l,min_dy)
+    println(" dy = ")
+    println(l/(nr-1))
+    println(" \n ")
+    println(" min dy = ")
+    println(min_dy)
+    println(" \n ")
+    println(" alpha = ")
+    println(alpha)
+
+    x1[1] = edgex
+    y1[1] = edgey
+    for i in 2:nr
+        x1[i] = x1[i-1] + min_dy*alpha^(i-2)
         y1[i] = edgey
     end
+
+    println(x1)
     
     return x1,y1
+end
+
+function cal_area3(edgex, edgey, r, cx, nr, min_dy,e)
+    x1 = zeros(nr)
+    y1 = zeros(nr)
+    
+    l  = r - edgex + cx
+
+    if l/(nr-1) < min_dy
+        println("------------------------\n")
+        println(" error \n ")
+        println(" please change min dy \n ")
+        println(" dy = ")
+        println(l/(nr-1))
+        println(" \n ")
+        println(" min dy = ")
+        println(min_dy)
+        println("------------------------")
+    end
+
+    alpha = newton_method(nr-2,l,min_dy)
+    println(" dy = ")
+    println(l/(nr-1))
+    println(" \n ")
+    println(" min dy = ")
+    println(min_dy)
+    println(" \n ")
+    println(" alpha = ")
+    println(alpha)
+
+    x1[1] = e
+    y1[1] = edgey
+    for i in 2:nr
+        x1[i] = x1[i-1] - min_dy*alpha^(i-2)
+        y1[i] = edgey
+    end
+
+    println(x1)
+    
+    return x1,y1
+end
+
+function newton_method(n,l,dx)
+	# ニュートン法
+	alpha = 1.5
+	for i in 1:10000
+		old = alpha
+		
+		alpha = alpha - f(alpha,n,dx,l)/f_dash(alpha,n,dx,l)
+
+		#if abs(alpha-old) / alpha < 10^(-4)
+			#break
+		#end
+	end
+	return alpha
+end
+
+function f(alpha,n,dx,l)
+    f = 1-alpha^(n+1) - (1-alpha) *l/dx
+    return f
+end
+
+function f_dash(alpha,n,dx,l)
+    f = -(n+1)*alpha^(n) + l/dx
+    return f    
 end
 
 function cal_area2(surface_len, aroundx, aroundy, nwin)
@@ -141,18 +247,26 @@ function cal_area2(surface_len, aroundx, aroundy, nwin)
         x2[i] = dis_2top/dis_2to1*p1x + (dis_2to1-dis_2top)/dis_2to1*p2x
         y2[i] = dis_2top/dis_2to1*p1y + (dis_2to1-dis_2top)/dis_2to1*p2y
     end
-    return x2,y2
+    
+    x1 = zeros(Int(nwin*0.5))
+    y1 = zeros(Int(nwin*0.5))
+    for i in 1:Int(nwin*0.5)
+        x1[i] = x2[i]
+        y1[i] = y2[i]
+    end
+    
+    return x1,y1
 end
 
 function cal_area4(edgex, edgey, r, cx, nwin)
-    x4 = zeros(nwin)
-    y4 = zeros(nwin)
+    x4 = zeros(Int(nwin*0.5))
+    y4 = zeros(Int(nwin*0.5))
 
-    len = 2*pi
-    dt  = len/(nwin-1)
+    len = pi
+    dt  = len/(nwin*0.5-1)
     
-    for i in 1:nwin
-        t     = 2*pi - (i-1)*dt
+    for i in 1:Int(nwin*0.5)
+        t     = len - (i-1)*dt + pi
         x4[i] = r * cos(t) + cx
         y4[i] = r * sin(t)
     end
@@ -164,6 +278,7 @@ end
 # -- 幾何学的計算により、境界適合格子を作成
 # ----------------------------------------------
 function algebraic_grid_gene(nr,nwing,x1,x2,x3,x4,y1,y2,y3,y4)
+#function algebraic_grid_gene(nr,nwing,x2,x1,x4,x3,y2,y1,y4,y3)
     x = zeros(nwing,nr)
     y = zeros(nwing,nr)
 
