@@ -13,33 +13,22 @@ function main()
     nr    = 200
     nwing = 200
     
-    
+    #=
     fout     = "xy_NACA0012"         # output file name
     NACAname = "NACA0012"            # NACA0012 type
     r    = 2.5                       # O型格子の半径
     cx   = 0.5                       # 翼データはx=0~1のため、その間の0.5をO型の中心とする。
     min_dy = 1.0e-3                  # 半径方向の最小格子幅, m
     dnum = 4                         # NACA0012 type = 4, NACA64A010 type = 6 
+    =#
     
     
-    #=
     fout     = "xy_hayabusa"         # output file name
     NACAname = "hayabusa_shape"      # NACA0012 type
     r      = 5.0                     # O型格子の半径
     cx     = -0.101                  # O型格子の中心
     min_dy = 1.0e-2                  # 半径方向の最小格子幅, m
     dnum   = 4                       # NACA0012 type = 4, NACA64A010 type = 6 
-    =#
-
-    #=
-    fout     = "xy_box"         # output file name
-    NACAname = "box"      # NACA0012 type
-    r      = 5.0                     # O型格子の半径
-    cx     = 0.5                  # O型格子の中心
-    min_dy = 1.0e-2                  # 半径方向の最小格子幅, m
-    dnum   = 4                       # NACA0012 type = 4, NACA64A010 type = 6 
-    =#
-    
     
     #=
     fout     = "xy_NACA64A010"       # output file name
@@ -78,16 +67,30 @@ function main()
         throw(UndefVarError(:x))
     end
     
-    x1, y1 = cal_area1(edgex, edgey, r, cx, nr, min_dy)
+    x1, y1 = cal_area1(edgex, edgey, r, cx, nr)
     x2, y2 = cal_area2(surface_len, aroundx, aroundy,nwing)
-    x3, y3 = cal_area3(edgex, edgey, r, cx, nr, min_dy, x2[Int(nwing*0.5)])
+    x3, y3 = cal_area1(edgex, edgey, r, cx, nr)
     x4, y4 = cal_area4(edgex, edgey, r, cx, nwing)
-
-    nr = nr
-    nwing = Int(nwing*0.5)
     
     x,y = algebraic_grid_gene(nr,nwing,x1,x2,x3,x4,y1,y2,y3,y4)
+
     
+    # 中央寄せ
+    tx = zeros(nr)
+    ty = zeros(nr)
+    for i in 1:nwing
+        for j in 1:nr
+            tx[j] = x[i,j]
+            ty[j] = y[i,j]
+        end
+        tx, ty = draw_in_grid(tx, ty, nr, min_dy)
+        for j in 1:nr
+            x[i,j] = tx[j]
+            y[i,j] = ty[j]
+        end
+    end
+    
+
     open(fout,"w") do f
         a1 = @sprintf("%8.8e", nwing)
         a2 = @sprintf("%8.8e", nr)
@@ -112,109 +115,18 @@ function main()
     end
 end
 
-function cal_area1(edgex, edgey, r, cx, nr, min_dy)
+function cal_area1(edgex, edgey, r, cx, nr)
     x1 = zeros(nr)
     y1 = zeros(nr)
     
-    l  = r - edgex + cx
-
-    if l/(nr-1) < min_dy
-        println("------------------------\n")
-        println(" error \n ")
-        println(" please change min dy \n ")
-        println(" dy = ")
-        println(l/(nr-1))
-        println(" \n ")
-        println(" min dy = ")
-        println(min_dy)
-        println("------------------------")
-    end
-
-    alpha = newton_method(nr-2,l,min_dy)
-    println(" dy = ")
-    println(l/(nr-1))
-    println(" \n ")
-    println(" min dy = ")
-    println(min_dy)
-    println(" \n ")
-    println(" alpha = ")
-    println(alpha)
-
-    x1[1] = edgex
-    y1[1] = edgey
-    for i in 2:nr
-        x1[i] = x1[i-1] + min_dy*alpha^(i-2)
+    dx  = (r - edgex + cx) / (nr-1)
+    
+    for i in 1:nr
+        x1[i] = edgex + (i-1)*dx
         y1[i] = edgey
     end
-
-    println(x1)
     
     return x1,y1
-end
-
-function cal_area3(edgex, edgey, r, cx, nr, min_dy,e)
-    x1 = zeros(nr)
-    y1 = zeros(nr)
-    
-    l  = r - edgex + cx
-
-    if l/(nr-1) < min_dy
-        println("------------------------\n")
-        println(" error \n ")
-        println(" please change min dy \n ")
-        println(" dy = ")
-        println(l/(nr-1))
-        println(" \n ")
-        println(" min dy = ")
-        println(min_dy)
-        println("------------------------")
-    end
-
-    alpha = newton_method(nr-2,l,min_dy)
-    println(" dy = ")
-    println(l/(nr-1))
-    println(" \n ")
-    println(" min dy = ")
-    println(min_dy)
-    println(" \n ")
-    println(" alpha = ")
-    println(alpha)
-
-    x1[1] = e
-    y1[1] = edgey
-    for i in 2:nr
-        x1[i] = x1[i-1] - min_dy*alpha^(i-2)
-        y1[i] = edgey
-    end
-
-    println(x1)
-    
-    return x1,y1
-end
-
-function newton_method(n,l,dx)
-	# ニュートン法
-	alpha = 1.5
-	for i in 1:10000
-		old = alpha
-		
-		alpha = alpha - f(alpha,n,dx,l)/f_dash(alpha,n,dx,l)
-
-		#if abs(alpha-old) / alpha < 10^(-4)
-			#break
-		#end
-	end
-	return alpha
-end
-
-function f(alpha,n,dx,l)
-    f = 1-alpha^(n+1) - (1-alpha) *l/dx
-    return f
-end
-
-function f_dash(alpha,n,dx,l)
-    f = -(n+1)*alpha^(n) + l/dx
-    return f    
 end
 
 function cal_area2(surface_len, aroundx, aroundy, nwin)
@@ -248,29 +160,117 @@ function cal_area2(surface_len, aroundx, aroundy, nwin)
         y2[i] = dis_2top/dis_2to1*p1y + (dis_2to1-dis_2top)/dis_2to1*p2y
     end
     
-    x1 = zeros(Int(nwin*0.5))
-    y1 = zeros(Int(nwin*0.5))
-    for i in 1:Int(nwin*0.5)
-        x1[i] = x2[i]
-        y1[i] = y2[i]
-    end
-    
-    return x1,y1
+    return x2,y2
 end
 
 function cal_area4(edgex, edgey, r, cx, nwin)
-    x4 = zeros(Int(nwin*0.5))
-    y4 = zeros(Int(nwin*0.5))
+    x4 = zeros(nwin)
+    y4 = zeros(nwin)
 
-    len = pi
-    dt  = len/(nwin*0.5-1)
+    len = 2*pi
+    dt  = len/(nwin-1)
     
-    for i in 1:Int(nwin*0.5)
-        t     = len - (i-1)*dt + pi
+    for i in 1:nwin
+        t     = len - (i-1)*dt
         x4[i] = r * cos(t) + cx
         y4[i] = r * sin(t)
     end
     return x4,y4
+end
+
+#= ----------------------------------------------
+ -- draw_in_grid(x, y, n, min_d)
+ 中央に格子を寄せる
+ 拡大率alphaとして、隣の格子との比が1:alphaになるように計算する
+ 半径方向の長さl, 壁面第一格子幅dx, 拡大率alphaの関係は次の等比数列で表すことができる。
+
+ l = dx + dx*alpha + + dx*alpha^2 + ... + + dx*alpha^n 
+
+ この関係から、ニュートン法によりalphaを求め、格子を作り直す
+ # ----------------------------------------------
+=#
+
+function draw_in_grid(x, y, n, min_d)
+    
+    l = 0.0         # 直線の長さ
+    for i in 2:n
+        l += ((x[i] - x[i-1])^2 + (y[i] - y[i-1])^2)^0.5
+    end
+
+    if l/(n-1) < min_d
+        println("------------------------\n")
+        println(" error \n ")
+        println(" please change min dy \n ")
+        println(" dy = ")
+        println(l/(nr-1))
+        println(" \n ")
+        println(" min dy = ")
+        println(min_d)
+        println("------------------------")
+    end
+
+    alpha = newton_method(n-2, l, min_d)
+    #=
+    println(" dy = ")
+    println(l/(nr-1))
+    println(" \n ")
+    println(" min dy = ")
+    println(min_dy)
+    println(" \n ")
+    println(" alpha = ")
+    println(alpha)
+    =#
+
+    pointlen  = 1e-50   # 経路に沿ったその点までの距離
+    aroundlen = 1e-50   # pointlenより1点分長くなるようにとった点までの距離
+    ite = 0             # 点のiteration
+    newx = copy(x)
+    newy = copy(y)
+    for i in 2:n
+        dx = min_d * alpha^(i-2)
+        pointlen += dx
+        while (pointlen - aroundlen)/(aroundlen) >= 1e-5
+            ite += 1
+            aroundlen += ((x[ite]-x[ite+1])^2 + (y[ite]-y[ite+1])^2)^0.5
+        end
+        
+        p1x = x[ite]
+        p1y = y[ite]
+        p2x = x[ite+1]
+        p2y = y[ite+1]
+        dis_2top = aroundlen - pointlen
+        dis_2to1 = ((p1x-p2x)^2 + (p1y-p2y)^2)^0.5
+
+        newx[i] = dis_2top/dis_2to1*p1x + (dis_2to1-dis_2top)/dis_2to1*p2x
+        newy[i] = dis_2top/dis_2to1*p1y + (dis_2to1-dis_2top)/dis_2to1*p2y
+    end
+
+    return newx, newy
+end
+
+function newton_method(n,l,dx)
+	# ニュートン法
+	alpha = 1.5
+	for i in 1:10000
+		old = alpha
+		
+		alpha = alpha - f(alpha,n,dx,l)/f_dash(alpha,n,dx,l)
+
+		#if abs(alpha-old) / alpha < 10^(-4)
+			#break
+		#end
+	end
+	return alpha
+end
+
+function f(alpha,n,dx,l)
+    f = 1-alpha^(n+1) - (1-alpha) *l/dx
+    return f
+end
+
+function f_dash(alpha,n,dx,l)
+    f = -(n+1)*alpha^(n) + l/dx
+    return f    
 end
 
 # ----------------------------------------------
@@ -278,7 +278,6 @@ end
 # -- 幾何学的計算により、境界適合格子を作成
 # ----------------------------------------------
 function algebraic_grid_gene(nr,nwing,x1,x2,x3,x4,y1,y2,y3,y4)
-#function algebraic_grid_gene(nr,nwing,x2,x1,x4,x3,y2,y1,y4,y3)
     x = zeros(nwing,nr)
     y = zeros(nwing,nr)
 
